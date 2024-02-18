@@ -1,0 +1,62 @@
+version: '3.8' # Define la versión de Docker Compose utilizada
+
+services:
+  nest-dev:
+    container_name: nestjs-dev # Establece el nombre del contenedor
+    restart:
+      unless-stopped
+      # Reinicia el contenedor a menos que se detenga explícitamente
+      # default  # Carga variables de entorno desde el archivo .env
+    build:
+      target: dev # Utiliza el target 'dev' para construir la imagen del contenedor
+      context: . # Busca el Dockerfile en el directorio actual
+      dockerfile: Dockerfile
+      args:
+        - PORT_NEST_CONTAINER=${PORT_NEST_CONTAINER}
+    ports:
+      - ${PORT_NEST_PC}:${PORT_NEST_CONTAINER} # Mapea el puerto del host al mismo puerto en el contenedor
+      - ${PORT_NEST_TESTING_PC}:${PORT_NEST_TESTING_CONTAINER} # Mapea el puerto de depuración 9229 del host al mismo puerto en el contenedor
+    volumes:
+      - ./.:/app # Monta el directorio actual del host en /project dentro del contenedor
+      - ./node_modules:/app/node_modules/ # Monta el volumen 'node_modules' en /project/node_modules/ dentro del contenedor
+    networks:
+      - my-network
+
+  psql-dev:
+    image: postgres
+    container_name: psql-dev
+    restart: always
+    expose:
+      - ${POSTGRES_PORT_CONTAINER}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+
+    volumes:
+      - ./docker/postgresql/deb/mount:/var/lib/postgresql/data # Monta el directorio actual del host en /project dentro del contenedor
+
+    networks:
+      - my-network
+
+  pgadmin4:
+    image: dpage/pgadmin4
+    restart: always
+
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+      PGADMIN_LISTEN_PORT: ${PGADMIN_LISTEN_PORT}
+    ports:
+      - ${PGADMIN_LISTEN_PORT_PC}:${PGADMIN_LISTEN_PORT}
+    networks:
+      - my-network
+
+volumes:
+  node_modules:
+    # Define un volumen llamado 'node_modules'
+
+networks:
+  my-network:
+    # Define una red personalizada llamada 'my-network'
+    driver: bridge # Puedes especificar el controlador de red que deseas utilizar, como bridge, overlay, etc.
